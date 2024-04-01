@@ -1,6 +1,6 @@
 # IntelliMatch: Job Applicant Assessment Tool
 
-This toy project is a simple web application designed to match job descriptions with candidate resumes using OpenAI's API. It was a toy project for me to learn JavaScript, HTML, and CSS.
+This project is a simple web application designed to match job descriptions with candidate resumes using OpenAI's API. It was a toy project for me to learn JavaScript, HTML, and CSS.
 
 ## Features
 - **PDF Upload**: Allows uploading job descriptions and resumes as PDFs.
