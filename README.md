@@ -14,6 +14,12 @@ This toy project is a simple web application designed to match job descriptions 
 ## Usage
 Upload the job description and candidate's resume PDFs, then click "Analyze Fit" for the assessment.
 
+## Example screenshots
+
+<img width="1230" alt="screenshot_mle" src="https://github.com/alex000kim/IntelliMatch/assets/17241029/6e26c74b-b715-4432-80a1-9727e82cfd8f">
+<img width="1231" alt="screenshot_da" src="https://github.com/alex000kim/IntelliMatch/assets/17241029/fd8d0249-a4e7-4dea-9861-491e6bebe481">
+
+
 ## License
 MIT License.
 
