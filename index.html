@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Job Applicant Assessment Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        input,
+        textarea,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        #analysisResult {
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 600px) {
+
+            h2,
+            h3 {
+                font-size: 16px;
+            }
+
+            pre {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Job Applicant Assessment Tool</h2>
+
+    <label for="jobDescriptionPdf">Upload Job Description PDF:</label><br>
+    <input type="file" id="jobDescriptionPdf" accept=".pdf" /><br><br>
+    <label for="resumeUpload">Upload Candidate's Resume PDF:</label><br>
+    <input type="file" id="resumeUpload" accept=".pdf" /><br><br>
+    <button id="submit">Analyze Fit</button>
+
+    <h3>Analysis</h3>
+    <pre id="analysisResult"></pre>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiKey = prompt("Enter your OpenAI API Key:");
+            localStorage.setItem('apiKey', apiKey);
+        });
+
+        document.getElementById('submit').addEventListener('click', async function () {
+            const apiKey = localStorage.getItem('apiKey');
+            const jobDescriptionPdf = document.getElementById('jobDescriptionPdf').files[0];
+            let jobDescription = '';
+
+            if (jobDescriptionPdf) {
+                jobDescription = await parsePDF(jobDescriptionPdf);
+            } else {
+                alert('Please upload a job description PDF.');
+                return;
+            }
+
+            const resumeFile = document.getElementById('resumeUpload').files[0];
+            if (!resumeFile) {
+                alert('Please upload a resume PDF.');
+                return;
+            }
+
+            const resumeText = await parsePDF(resumeFile);
+
+            const analysisResult = await analyzeFit(apiKey, jobDescription, resumeText);
+            document.getElementById('analysisResult').innerText = analysisResult;
+        });
+
+        async function parsePDF(pdfFile) {
+            const reader = new FileReader();
+
+            return new Promise((resolve, reject) => {
+                reader.onload = async function (e) {
+                    const typedArray = new Uint8Array(e.target.result);
+                    const loadingTask = pdfjsLib.getDocument({ data: typedArray });
+                    const pdf = await loadingTask.promise;
+                    let pdfText = '';
+
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        pdfText += textContent.items.map(item => item.str).join(' ');
+                    }
+
+                    resolve(pdfText);
+                };
+
+                reader.onerror = function () {
+                    reject('Error reading PDF file.');
+                };
+
+                reader.readAsArrayBuffer(pdfFile);
+            });
+        }
+
+        async function analyzeFit(apiKey, jobDescription, resumeText) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4-0125-preview",
+                    messages: [
+                        {
+                            "role": "system",
+                            "content": "You are an assistant who evaluates job candidate fit based on the job description and the candidate's resume."
+                        },
+                        {
+                            "role": "user",
+                            "content": `Job Description:\n
+                            ###\n
+                            ${jobDescription}
+                            \n###
+                            \n
+                            Candidate's Resume:\n
+                            ${resumeText}
+                            \n
+                            Evaluate the candidate's fit for the job.
+                            First, summarize the candidate's qualifications and experience. 
+                            Then, provide a brief assessment of the candidate's fit for the job.
+                            Finally, recommend whether the candidate should be considered for an interview by outputting 'YES' or 'NO'.
+                            Be very critical in your evaluation.
+                            Only recommend candidates who are a really good fit for the job. 
+                            Don't recommend candidates who are a partial fit or not a fit at all.
+                            Don't recommend overqualified or underqualified candidates.
+                            The output format should be as follows:
+
+                            Summary:\n
+                            [Candidate's qualifications and experience]
+                            Assessment:\n
+                            [Brief assessment of candidate's fit for the job]
+                            Recommendation:\n
+                            [YES/NO]
+                            `
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                return 'Failed to analyze fit. Please check your API key and try again.';
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content.trim();
+        }
+    </script>
+</body>
+
+</html>
